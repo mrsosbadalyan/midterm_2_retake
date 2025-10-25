@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../data/recipes.dart';
 import '../models/recipe.dart';
 import '../services/prefs_service.dart';
@@ -10,7 +11,7 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
     on<LoadInitial>(_onLoadInitial);
     on<SearchChanged>(_onSearchChanged);
     on<CategoryChanged>(_onCategoryChanged);
-    on<LoadMore>(_onLoadMore);
+    on<LoadMore>(_onLoadMore);               // loads all remaining
     on<SelectRecipe>((e, emit) => emit(state.copyWith(selectedId: e.id)));
     on<ToggleFavorite>(_onToggleFavorite);
   }
@@ -20,9 +21,11 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
     final favs = <String>{...(saved['favorites']?.cast<String>() ?? const <String>[])};
     final search = (saved['search'] ?? '') as String;
     final cat = saved['category'] as String?;
+
     final filtered = _applyFilters(kAllRecipes, search, cat);
-    final limit = 7;
+    const limit = 7;
     final visible = filtered.take(limit).toList();
+
     emit(RecipeState(
       all: kAllRecipes,
       filtered: filtered,
@@ -34,6 +37,7 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
       canLoadMore: filtered.length > visible.length,
       selectedId: null,
       favorites: favs,
+      isLoading: false,
     ));
   }
 
@@ -54,6 +58,7 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
       visible: visible,
       offset: visible.length,
       canLoadMore: filtered.length > visible.length,
+      isLoading: false,
     ));
     _persist();
   }
@@ -67,34 +72,32 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
       visible: visible,
       offset: visible.length,
       canLoadMore: filtered.length > visible.length,
+      isLoading: false,
     ));
     _persist();
   }
 
-  // again this is for infinite scrolling and searching
-  void _onLoadMore(LoadMore e, Emitter<RecipeState> emit) {
-    if (!state.canLoadMore) return;
-    final next = (state.offset + state.limit).clamp(0, state.filtered.length);
-    final visible = state.filtered.take(next).toList();
+  Future<void> _onLoadMore(LoadMore e, Emitter<RecipeState> emit) async {
+    if (!state.canLoadMore || state.isLoading) return;
+
+    emit(state.copyWith(isLoading: true));
+    await Future.delayed(const Duration(milliseconds: 350));
+
+    final visible = List<Recipe>.from(state.filtered);
     emit(state.copyWith(
       visible: visible,
       offset: visible.length,
-      canLoadMore: state.filtered.length > visible.length,
+      canLoadMore: false,
+      isLoading: false,
     ));
   }
 
-  // this is for favorites
   void _onToggleFavorite(ToggleFavorite e, Emitter<RecipeState> emit) {
     final favs = Set<String>.from(state.favorites);
-    if (favs.contains(e.id)) {
-      favs.remove(e.id);
-    } else {
-      favs.add(e.id);
-    }
+    favs.contains(e.id) ? favs.remove(e.id) : favs.add(e.id);
     emit(state.copyWith(favorites: favs));
     _persist();
   }
-
 
   List<Recipe> _applyFilters(List<Recipe> src, String search, String? cat) {
     final q = search.trim().toLowerCase();

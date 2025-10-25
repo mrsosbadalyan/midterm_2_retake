@@ -15,7 +15,6 @@ class ListPage extends StatefulWidget {
 
 class _ListPageState extends State<ListPage> {
   final _scroll = ScrollController();
-  bool _armed = true; // gate so we load only once per bottom reach
 
   @override
   void initState() {
@@ -23,20 +22,10 @@ class _ListPageState extends State<ListPage> {
 
     _scroll.addListener(() {
       final bloc = context.read<RecipeBloc>();
-      final s = bloc.state;
       final pos = _scroll.position;
-
       final nearBottom = pos.pixels >= (pos.maxScrollExtent - 120);
 
-      // Re-arm once the user scrolls up a bit
-      final rearmThreshold = pos.maxScrollExtent - 400;
-      if (pos.pixels < rearmThreshold) {
-        _armed = true;
-      }
-
-      if (nearBottom && _armed && s.canLoadMore) {
-        _armed = false;
-        print("Hello");
+      if (nearBottom && bloc.state.canLoadMore && !bloc.state.isLoading) {
         bloc.add(LoadMore());
       }
     });
@@ -76,7 +65,7 @@ class _ListPageState extends State<ListPage> {
                 ),
               ),
 
-              // Category chips
+              // Category
               SizedBox(
                 height: 46,
                 child: ListView(
@@ -91,10 +80,9 @@ class _ListPageState extends State<ListPage> {
                       child: ChoiceChip(
                         label: Text(c),
                         selected: selected,
-                        onSelected: (_) {
-                          _armed = true; // re-arm when filters change
-                          bloc.add(CategoryChanged(isAll ? null : c));
-                        },
+                        onSelected: (_) => bloc.add(
+                          CategoryChanged(isAll ? null : c),
+                        ),
                       ),
                     );
                   }).toList(),
@@ -103,7 +91,7 @@ class _ListPageState extends State<ListPage> {
 
               const SizedBox(height: 8),
 
-              // List (NO loader row)
+              // List + optional loader row at bottom while loading
               Expanded(
                 child: state.visible.isEmpty
                     ? const Center(child: Text('No items match your filters.'))
@@ -112,8 +100,27 @@ class _ListPageState extends State<ListPage> {
                   padding: EdgeInsets.only(
                     bottom: MediaQuery.of(context).padding.bottom + 12,
                   ),
-                  itemCount: state.visible.length, // <-- only visible items
+                  itemCount:
+                  state.visible.length + (state.isLoading ? 1 : 0),
                   itemBuilder: (context, i) {
+                    if (i >= state.visible.length) {
+                      return const SafeArea(
+                        top: false,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.6,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
                     final r = state.visible[i];
                     final fav = state.favorites.contains(r.id);
                     return RecipeCard(

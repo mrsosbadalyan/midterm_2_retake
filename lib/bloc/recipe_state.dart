@@ -11,6 +11,7 @@ class RecipeState {
   final bool canLoadMore;
   final String? selectedId;
   final Set<String> favorites;
+  final bool isLoading;
 
   const RecipeState({
     required this.all,
@@ -23,10 +24,11 @@ class RecipeState {
     required this.canLoadMore,
     required this.selectedId,
     required this.favorites,
+    required this.isLoading,
   });
 
   factory RecipeState.initial(List<Recipe> dataset) {
-    final limit = 5;
+    const limit = 7; // show 7 initially
     final filtered = List<Recipe>.from(dataset);
     final visible = filtered.take(limit).toList();
     return RecipeState(
@@ -40,6 +42,7 @@ class RecipeState {
       canLoadMore: filtered.length > visible.length,
       selectedId: null,
       favorites: <String>{},
+      isLoading: false,
     );
   }
 
@@ -54,6 +57,7 @@ class RecipeState {
     bool? canLoadMore,
     Object? selectedId = _keep,
     Set<String>? favorites,
+    bool? isLoading,
   }) {
     return RecipeState(
       all: all ?? this.all,
@@ -67,6 +71,7 @@ class RecipeState {
       selectedId:
       identical(selectedId, _keep) ? this.selectedId : selectedId as String?,
       favorites: favorites ?? this.favorites,
+      isLoading: isLoading ?? this.isLoading,
     );
   }
 
