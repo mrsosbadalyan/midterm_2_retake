@@ -50,7 +50,6 @@ class _ListPageState extends State<ListPage> {
           appBar: AppBar(title: const Text('Recipe Explorer')),
           body: Column(
             children: [
-              // Search
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: TextField(
@@ -91,7 +90,7 @@ class _ListPageState extends State<ListPage> {
 
               const SizedBox(height: 8),
 
-              // List + optional loader row at bottom while loading
+              // List + loader row at bottom while paging
               Expanded(
                 child: state.visible.isEmpty
                     ? const Center(child: Text('No items match your filters.'))
@@ -103,6 +102,7 @@ class _ListPageState extends State<ListPage> {
                   itemCount:
                   state.visible.length + (state.isLoading ? 1 : 0),
                   itemBuilder: (context, i) {
+                    // loader row at end while fetching next page
                     if (i >= state.visible.length) {
                       return const SafeArea(
                         top: false,
@@ -110,8 +110,8 @@ class _ListPageState extends State<ListPage> {
                           padding: EdgeInsets.symmetric(vertical: 16),
                           child: Center(
                             child: SizedBox(
-                              width: 20,
-                              height: 20,
+                              width: 22,
+                              height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.6,
                               ),

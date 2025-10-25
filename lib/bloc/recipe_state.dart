@@ -28,18 +28,18 @@ class RecipeState {
   });
 
   factory RecipeState.initial(List<Recipe> dataset) {
-    const limit = 7; // show 7 initially
+    const limit = 7;
     final filtered = List<Recipe>.from(dataset);
-    final visible = filtered.take(limit).toList();
+    final first = filtered.take(limit).toList();
     return RecipeState(
       all: dataset,
       filtered: filtered,
-      visible: visible,
+      visible: first,
       search: '',
       category: null,
       limit: limit,
-      offset: visible.length,
-      canLoadMore: filtered.length > visible.length,
+      offset: first.length,
+      canLoadMore: filtered.length > first.length,
       selectedId: null,
       favorites: <String>{},
       isLoading: false,

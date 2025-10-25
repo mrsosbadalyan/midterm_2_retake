@@ -11,7 +11,7 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
     on<LoadInitial>(_onLoadInitial);
     on<SearchChanged>(_onSearchChanged);
     on<CategoryChanged>(_onCategoryChanged);
-    on<LoadMore>(_onLoadMore);               // loads all remaining
+    on<LoadMore>(_onLoadMore); // +7 each time
     on<SelectRecipe>((e, emit) => emit(state.copyWith(selectedId: e.id)));
     on<ToggleFavorite>(_onToggleFavorite);
   }
@@ -24,17 +24,17 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
 
     final filtered = _applyFilters(kAllRecipes, search, cat);
     const limit = 7;
-    final visible = filtered.take(limit).toList();
+    final first = filtered.take(limit).toList();
 
     emit(RecipeState(
       all: kAllRecipes,
       filtered: filtered,
-      visible: visible,
+      visible: first,
       search: search,
       category: cat,
       limit: limit,
-      offset: visible.length,
-      canLoadMore: filtered.length > visible.length,
+      offset: first.length,
+      canLoadMore: filtered.length > first.length,
       selectedId: null,
       favorites: favs,
       isLoading: false,
@@ -51,13 +51,13 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
 
   void _onSearchChanged(SearchChanged e, Emitter<RecipeState> emit) {
     final filtered = _applyFilters(state.all, e.query, state.category);
-    final visible = filtered.take(state.limit).toList();
+    final first = filtered.take(state.limit).toList();
     emit(state.copyWith(
       search: e.query,
       filtered: filtered,
-      visible: visible,
-      offset: visible.length,
-      canLoadMore: filtered.length > visible.length,
+      visible: first,
+      offset: first.length,
+      canLoadMore: filtered.length > first.length,
       isLoading: false,
     ));
     _persist();
@@ -65,13 +65,13 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
 
   void _onCategoryChanged(CategoryChanged e, Emitter<RecipeState> emit) {
     final filtered = _applyFilters(state.all, state.search, e.category);
-    final visible = filtered.take(state.limit).toList();
+    final first = filtered.take(state.limit).toList();
     emit(state.copyWith(
       category: e.category,
       filtered: filtered,
-      visible: visible,
-      offset: visible.length,
-      canLoadMore: filtered.length > visible.length,
+      visible: first,
+      offset: first.length,
+      canLoadMore: filtered.length > first.length,
       isLoading: false,
     ));
     _persist();
@@ -81,13 +81,15 @@ class RecipeBloc extends Bloc<RecipeEvent, RecipeState> {
     if (!state.canLoadMore || state.isLoading) return;
 
     emit(state.copyWith(isLoading: true));
-    await Future.delayed(const Duration(milliseconds: 350));
+    await Future.delayed(const Duration(milliseconds: 600));
 
-    final visible = List<Recipe>.from(state.filtered);
+    final nextOffset = (state.offset + state.limit).clamp(0, state.filtered.length);
+    final nextVisible = state.filtered.take(nextOffset).toList();
+
     emit(state.copyWith(
-      visible: visible,
-      offset: visible.length,
-      canLoadMore: false,
+      visible: nextVisible,
+      offset: nextVisible.length,
+      canLoadMore: state.filtered.length > nextVisible.length,
       isLoading: false,
     ));
   }
